@@ -28,6 +28,7 @@ import os
 import argparse
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 from selenium.common.exceptions import NoSuchElementException
 from halo import Halo
@@ -48,7 +49,7 @@ def check_exists_by_name(name, driver):
     boolean
     """
     try:
-        driver.find_element_by_name(name)
+        driver.find_element(By.NAME, name)
     except NoSuchElementException:
         return False
     return True
@@ -70,11 +71,11 @@ def start():
     print("1- Accessing to PISA website :")
 
     options = Options()
-    options.headless = True
+    options.add_argument("--headless")
     driver = webdriver.Firefox(options=options)
     driver.get("https://www.ebi.ac.uk/pdbe/pisa/")
 
-    launch = driver.find_element_by_name("start_server")
+    launch = driver.find_element(By.NAME, "start_server")
     launch.click()
 
     print("Done")
@@ -99,7 +100,7 @@ def launch_pdb_id(driver, pdb_id):
     """
     print("2- Submitting "+pdb_id+" to PISA :")
 
-    pdb_entry = driver.find_element_by_name("edt_pdbcode")
+    pdb_entry = driver.find_element(By.NAME, "edt_pdbcode")
     pdb_entry.clear()
     pdb_entry.send_keys(pdb_id)
 
@@ -112,7 +113,7 @@ def launch_pdb_id(driver, pdb_id):
     spinner = Halo(text='Running PISA', spinner='dots')
     spinner.start()
 
-    interface = driver.find_element_by_name("btn_submit_interfaces")
+    interface = driver.find_element(By.NAME, "btn_submit_interfaces")
     interface.click()
 
     while(not check_exists_by_name('downloadXML', driver)):
@@ -144,20 +145,20 @@ def download_xmls(driver, pdb_id):
     spinner = Halo(text='Downloading interface table', spinner='dots')
     spinner.start()
 
-    driver.find_element_by_name('downloadXML').click()
+    driver.find_element(By.NAME, 'downloadXML').click()
 
     time.sleep(5)
 
     driver.switch_to.window(driver.window_handles[1])
     xml = driver.current_url
 
-    if not os.path.exists('Results'):
-        os.makedirs('Results')
+    if not os.path.exists('PDBePISA'):
+        os.makedirs('PDBePISA')
 
-    if not os.path.exists('Results/xml_files'+pdb_id):
-        os.makedirs('Results/xml_files'+pdb_id)
+    if not os.path.exists('PDBePISA/xml_files'+pdb_id):
+        os.makedirs('PDBePISA/xml_files'+pdb_id)
 
-    with open('Results/xml_files'+pdb_id+'/'+xml.split('/')[-1], 'w') as f:
+    with open('PDBePISA/xml_files'+pdb_id+'/'+xml.split('/')[-1], 'w') as f:
         f.write(driver.page_source)
 
     time.sleep(3)
@@ -170,7 +171,7 @@ def download_xmls(driver, pdb_id):
 
     inter_lst = []
 
-    with open('Results/xml_files'+pdb_id+'/'+xml.split('/')[-1], "r") as f_xml:
+    with open('PDBePISA/xml_files'+pdb_id+'/'+xml.split('/')[-1], "r") as f_xml:
         for line in f_xml:
             if line.strip().startswith("<INTERFACENO>"):
                 inter_lst.append(line[13:15].strip("<"))
@@ -184,13 +185,14 @@ def download_xmls(driver, pdb_id):
 
         time.sleep(2)
 
-        driver.find_element_by_link_text(i).click()
+        driver.find_element(By.LINK_TEXT, i).click()
 
         time.sleep(5)
 
-        xmls = driver.find_elements_by_name('downloadXML')
+        xmls = driver.find_elements(By.NAME, 'downloadXML')
 
         for i in range(1,len(xmls)):
+            driver.execute_script("arguments[0].scrollIntoView();", xmls[i])
             xmls[i].click()
 
             time.sleep(3)
@@ -198,7 +200,7 @@ def download_xmls(driver, pdb_id):
             driver.switch_to.window(driver.window_handles[1])
             xml = driver.current_url
 
-            with open('Results/xml_files'+pdb_id+'/'+xml.split('/')[-1], 'w') as f:
+            with open('PDBePISA/xml_files'+pdb_id+'/'+xml.split('/')[-1], 'w') as f:
                 f.write(driver.page_source)
 
             time.sleep(3)
