@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/Applications/anaconda3/envs/pisapy/bin/python3
 """
 Code to automatically run PDBePISA web server on pdb files and downloading the
 generated xml files.
@@ -30,14 +30,20 @@ hard
 import time
 import os
 import sys
+import pandas as pd
 from os import listdir
 from os.path import isfile
 import argparse
+import matplotlib.pyplot as plt
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from halo import Halo
 import PisaAuto_id as pisa
+from Parse_Interfacetable import parse_interface, find_xml_files
+from Pisa_xml_parser import create_df, interfacetable_parse
+from Residue_xml_parser import xmlresidue_parser, plot_residue_data
 
 def check_exists_by_name(name, driver):
     """
@@ -54,7 +60,7 @@ def check_exists_by_name(name, driver):
     boolean
     """
     try:
-        driver.find_element_by_name(name)
+        driver.find_element(By.NAME, name)
     except NoSuchElementException:
         return False
     return True
@@ -79,20 +85,20 @@ def launch_pdb_file(driver, pdb_file):
     spinner = Halo(text='Uploading pdb file', spinner='dots')
     spinner.start()
 
-    driver.find_elements_by_name('radio_source')[1].click()
+    driver.find_elements(By.NAME, 'radio_source')[1].click()
 
     time.sleep(6)
 
-    driver.find_element_by_name("file_upload").send_keys(os.getcwd()+"/"+pdb_file)
+    driver.find_element(By.NAME, "file_upload").send_keys(os.getcwd()+"/"+pdb_file)
 
     time.sleep(5)
 
-    driver.find_element_by_name("btn_upload").click()
+    driver.find_element(By.NAME, "btn_upload").click()
 
     while(not check_exists_by_name('btn_submit_interfaces', driver)):
         pass
 
-    driver.find_element_by_name("btn_submit_interfaces").click()
+    driver.find_element(By.NAME, "btn_submit_interfaces").click()
 
     spinner.stop()
 
@@ -105,7 +111,7 @@ def launch_pdb_file(driver, pdb_file):
 
     time.sleep(4)
 
-    if driver.find_element_by_class_name("phead").text.startswith("No"):
+    if driver.find_element(By.CLASS_NAME, "phead").text.startswith("No"):
 
         spinner.stop()
         
@@ -145,3 +151,33 @@ if __name__ == '__main__':
         if boo:
             pisa.download_xmls(driver, file.split('/')[-1])
         driver.quit()
+    
+    ROOT_DIR = ARGS.pdb_path
+
+    xml_files = find_xml_files(ROOT_DIR)
+
+    print("Parsing InterfaceTable.xml files")
+    for xml_file in xml_files:
+        df = pd.DataFrame.from_dict(parse_interface(xml_file))
+        output_file = os.path.join(os.path.dirname(xml_file), "InterfaceTable.csv")
+        df.to_csv(output_file)
+
+    for xml_file in xml_files:
+        print(f"Processing {xml_file}")
+        df = create_df(interfacetable_parse(xml_file))
+        output_file = os.path.join(os.path.dirname(xml_file), "InteractionSheet.csv")
+        df.to_csv(output_file)
+        print(f"Saved {output_file}")
+
+
+    print("Parsing Residue0.xml files")
+    residue_xml_files = find_xml_files(ROOT_DIR, filename="residue0.xml")
+
+    for xml_file in residue_xml_files:
+        df = xmlresidue_parser(xml_file)
+        output_file = os.path.join(os.path.dirname(xml_file), "ResidueTable.csv")
+        df.to_csv(output_file)
+        plot_residue_data(df)
+        plt.savefig(os.path.join(os.path.dirname(xml_file), "ResiduePlot.pdf"))
+        plt.close
+

@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/Applications/anaconda3/envs/pisapy/bin/python
 """
 Code to get the major interaction type between two chains.
 

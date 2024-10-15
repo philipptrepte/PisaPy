@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/Applications/anaconda3/envs/pisapy/bin/python
 """
 Code for parsing pisa xml files and saving data in a csv file.
 
@@ -10,7 +10,7 @@ given by PDBePISA web server.
 
 Then you can run the script with the following command :
 
-    python Pisa_xml_parser.py interfacetable.xml
+    python Pisa_xml_parser.py path/to/path/to/pisa_results/
 
 Note that the hydrogen bond and slat bridge files must be on the same directory as interfacetable
 
@@ -24,9 +24,10 @@ import argparse
 import pandas as pd
 import re
 import os.path
+from Parse_Interfacetable import find_xml_files
 
-#this dict only works for MexAB-OprM complex
-DICT_CHAINS = {'OprM': 'ABC', 'MexA': 'DEFGHI', 'MexB': 'JKL'}
+#this dict works generally assigns chain A as binder and chain B as target
+DICT_CHAINS = {'Binder': 'A', 'Target': 'B'}
 
 def xmlbond_parser(xml_file):
     """
@@ -100,7 +101,7 @@ def interfacetable_parse(xml_file):
     lst = []
     intern_lst = []
 
-    path = '/'.join(xml_file.split('/')[:-1])
+    path = '/'.join(xml_file.split('/')[:-1])+'/'
     print(xml_file)
 
     with open(xml_file, "r") as f_xml:
@@ -108,8 +109,8 @@ def interfacetable_parse(xml_file):
             if line.startswith("<INTERFACENO>"):
                 i = int(line[13:15].strip("<"))
                 intern_lst.append(i)
-                intern_lst.append(xmlbond_parser(path+"/hydrogenbond"+str(i-1)+".xml"))
-                intern_lst.append(xmlbond_parser(path+"/saltbridge"+str(i-1)+".xml"))
+                intern_lst.append(xmlbond_parser(path+"hydrogenbond"+str(i-1)+".xml"))
+                intern_lst.append(xmlbond_parser(path+"saltbridge"+str(i-1)+".xml"))
             elif line.startswith("<INTERFACEAREA>"):
                 intern_lst.append(float(line.split('>')[1].split('<')[0]))
             elif line.startswith("<INTERFACEDELTAGPVALUE>"):
@@ -169,10 +170,17 @@ if __name__ == '__main__':
 
     PARSER = argparse.ArgumentParser()
 
-    PARSER.add_argument("xml_file", help="the pisa interface table xml file", type=str)
+    PARSER.add_argument("root_dir", help="the root directory to search for interfacetable.xml files", type=str)
 
     ARGS = PARSER.parse_args()
 
-    XML_FILE = ARGS.xml_file
+    ROOT_DIR = ARGS.root_dir
 
-    create_df(interfacetable_parse(XML_FILE)).to_csv("InteractionSheet.csv")
+    xml_files = find_xml_files(ROOT_DIR)
+
+    for xml_file in xml_files:
+        print(f"Processing {xml_file}")
+        df = create_df(interfacetable_parse(xml_file))
+        output_file = os.path.join(os.path.dirname(xml_file), "InteractionSheet.csv")
+        df.to_csv(output_file)
+        print(f"Saved {output_file}")

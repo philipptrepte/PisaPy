@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/Applications/anaconda3/envs/pisapy/bin/python
 """
 Code to parse interfacetable.xml and generate a csv file with the xml file data.
 
@@ -8,7 +8,7 @@ First you need to have the python packages pandas and argparse, and the interfac
 and each hydrogenbond.xml files given by pisa web server.
 
 Then you can run the script with the following command :
-    python Parse_Interactiontable.py interfacetable.xml
+    python Parse_Interfacetable.py path/to/pisa_results/
 
   Author
   ------
@@ -45,7 +45,6 @@ def get_surf(xml_file):
             elif (line.startswith('<INTERFACEAREA>')) and (s == 2):
                 x2 = float(line.split('>')[1].split('<')[0])
     return ((x1+x2)/2)
-
 
 def parse_interface(xml_file):
     """
@@ -102,17 +101,37 @@ def parse_interface(xml_file):
             if line.startswith("<INTERFACECSS>"):
                 dico['CSS'].append(float(line.split('>')[1].split('<')[0]))
 
+    # Ensure all lists in the dictionary have the same length
+    max_length = max(len(lst) for lst in dico.values())
+    for key, lst in dico.items():
+        if len(lst) < max_length:
+            dico[key] = lst + [None] * (max_length - len(lst))
+
     return dico
 
+def find_xml_files(root_dir, filename="interfacetable.xml"):
+    xml_files = []
+    for root, dirs, files in os.walk(root_dir):
+        # Only go one level deep
+        if root.count(os.sep) - root_dir.count(os.sep) < 2:
+            for file in files:
+                if file == filename:
+                    xml_files.append(os.path.join(root, file))
+    return xml_files
 
 if __name__ == '__main__':
 
     PARSER = argparse.ArgumentParser()
 
-    PARSER.add_argument("xml_file", help="the pisa interface table xml file", type=str)
+    PARSER.add_argument("root_dir", help="the root directory to search for interfacetable.xml files", type=str)
 
     ARGS = PARSER.parse_args()
 
-    XML_FILE = ARGS.xml_file
+    ROOT_DIR = ARGS.root_dir
 
-    pd.DataFrame.from_dict(parse_interface(XML_FILE)).to_csv("InterfaceTable.csv")
+    xml_files = find_xml_files(ROOT_DIR)
+
+    for xml_file in xml_files:
+        df = pd.DataFrame.from_dict(parse_interface(xml_file))
+        output_file = os.path.join(os.path.dirname(xml_file), "InterfaceTable.csv")
+        df.to_csv(output_file)
