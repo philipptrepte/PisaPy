@@ -7,6 +7,12 @@ Python code to automatically interact with PDBePISA (Proteins, Interfaces, Struc
 ## Description :
 Allows to automatically run [PISA](https://www.ebi.ac.uk/pdbe/pisa/) interfaces web server and downloading the generated xml files by giving pdb files or a pdb id.
 
+
+### Updates 2024
+
+The script files `Pisa_xml_parser.py` and `Parse_Interfacetable.py` now look for respective `.xml` files in the specified `pdb_folder` performing a limited-depth search in its immediate subdirectories. In addition, the new script file `Residue_xml_parser.xml` generates a `ResidueTable.csv` results table from the `residue0.xml` and saves a `ResiduePlot.pdf` plot.
+Updates currently only work when providing files and not PDB ids.
+
 ## Requirements :
 
 ### System :
@@ -60,6 +66,7 @@ selenium requires [geckodriver](https://github.com/mozilla/geckodriver/releases)
 `PisaAuto_file.py`
 `Pisa_xml_parser.py`
 `Parse_Interfacetable.py`
+`Residue_xml_parser.py`
 `Auto_Naccess.py`
 `Download_pdbfasta.py`
 
