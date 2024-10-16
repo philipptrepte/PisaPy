@@ -139,6 +139,7 @@ if __name__ == '__main__':
     ARGS = PARSER.parse_args()
 
     PDB_PATH = ARGS.pdb_path
+    ROOT_DIR = os.path.abspath(ARGS.pdb_path)
 
     PDB_FILES = sorted([PDB_PATH+f for f in listdir(PDB_PATH) 
         if ((isfile(PDB_PATH+f)) and 
@@ -149,14 +150,12 @@ if __name__ == '__main__':
         driver = pisa.start()
         driver, boo = launch_pdb_file(driver, file)
         if boo:
-            pisa.download_xmls(driver, file.split('/')[-1])
+            pisa.download_xmls(driver, file.split('/')[-1], path=PDB_PATH)
         driver.quit()
     
-    ROOT_DIR = ARGS.pdb_path
-
     xml_files = find_xml_files(ROOT_DIR)
 
-    print("Parsing InterfaceTable.xml files")
+    print("5-Parsing InterfaceTable.xml files")
     for xml_file in xml_files:
         df = pd.DataFrame.from_dict(parse_interface(xml_file))
         output_file = os.path.join(os.path.dirname(xml_file), "InterfaceTable.csv")
@@ -167,10 +166,9 @@ if __name__ == '__main__':
         df = create_df(interfacetable_parse(xml_file))
         output_file = os.path.join(os.path.dirname(xml_file), "InteractionSheet.csv")
         df.to_csv(output_file)
-        print(f"Saved {output_file}")
+    print("Done")
 
-
-    print("Parsing Residue0.xml files")
+    print("6-Parsing Residue0.xml files")
     residue_xml_files = find_xml_files(ROOT_DIR, filename="residue0.xml")
 
     for xml_file in residue_xml_files:
@@ -180,4 +178,4 @@ if __name__ == '__main__':
         plot_residue_data(df)
         plt.savefig(os.path.join(os.path.dirname(xml_file), "ResiduePlot.pdf"))
         plt.close
-
+    print("Done")

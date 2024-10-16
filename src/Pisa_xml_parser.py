@@ -102,7 +102,6 @@ def interfacetable_parse(xml_file):
     intern_lst = []
 
     path = '/'.join(xml_file.split('/')[:-1])+'/'
-    print(xml_file)
 
     with open(xml_file, "r") as f_xml:
         for line in f_xml :
@@ -179,8 +178,6 @@ if __name__ == '__main__':
     xml_files = find_xml_files(ROOT_DIR)
 
     for xml_file in xml_files:
-        print(f"Processing {xml_file}")
         df = create_df(interfacetable_parse(xml_file))
         output_file = os.path.join(os.path.dirname(xml_file), "InteractionSheet.csv")
         df.to_csv(output_file)
-        print(f"Saved {output_file}")
