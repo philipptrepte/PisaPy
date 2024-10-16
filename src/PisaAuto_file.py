@@ -89,7 +89,7 @@ def launch_pdb_file(driver, pdb_file):
 
     time.sleep(6)
 
-    driver.find_element(By.NAME, "file_upload").send_keys(os.getcwd()+"/"+pdb_file)
+    driver.find_element(By.NAME, "file_upload").send_keys(pdb_file)
 
     time.sleep(5)
 
@@ -139,7 +139,11 @@ if __name__ == '__main__':
     ARGS = PARSER.parse_args()
 
     PDB_PATH = ARGS.pdb_path
+    if not PDB_PATH.endswith('/'):
+        PDB_PATH += '/'
     ROOT_DIR = os.path.abspath(ARGS.pdb_path)
+    if not ROOT_DIR.endswith('/'):
+        ROOT_DIR += '/'
 
     PDB_FILES = sorted([PDB_PATH+f for f in listdir(PDB_PATH) 
         if ((isfile(PDB_PATH+f)) and 
