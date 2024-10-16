@@ -32,6 +32,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 from selenium.common.exceptions import NoSuchElementException
 from halo import Halo
+import logging
+from datetime import datetime
 
 
 def check_exists_by_name(name, driver):
@@ -68,7 +70,7 @@ def start():
     -------
     selenium webdriver
     """
-    print("1- Accessing to PISA website :")
+    logging.info("1- Accessing to PISA website :")
 
     options = Options()
     options.add_argument("--headless")
@@ -78,7 +80,7 @@ def start():
     launch = driver.find_element(By.NAME, "start_server")
     launch.click()
 
-    print("Done")
+    logging.info("Done")
 
     return driver
 
@@ -98,7 +100,7 @@ def launch_pdb_id(driver, pdb_id):
     -------
     selenium webdriver
     """
-    print("2- Submitting "+pdb_id+" to PISA :")
+    logging.info("2- Submitting "+pdb_id+" to PISA :")
 
     pdb_entry = driver.find_element(By.NAME, "edt_pdbcode")
     pdb_entry.clear()
@@ -106,9 +108,9 @@ def launch_pdb_id(driver, pdb_id):
 
     time.sleep(10)
 
-    print("Done")
+    logging.info("Done")
 
-    print("3- Running PISA on "+pdb_id+" :")
+    logging.info("3- Running PISA on "+pdb_id+" :")
 
     spinner = Halo(text='Running PISA', spinner='dots')
     spinner.start()
@@ -138,9 +140,9 @@ def download_xmls(driver, pdb_id, path):
     -------
     Nothing
     """
-    print("Done")
+    logging.info("Done")
 
-    print("4- Downloading xml files :")
+    logging.info("4- Downloading xml files :")
 
     spinner = Halo(text='Downloading interface table', spinner='dots')
     spinner.start()
@@ -150,7 +152,20 @@ def download_xmls(driver, pdb_id, path):
     time.sleep(5)
 
     driver.switch_to.window(driver.window_handles[1])
-    xml = driver.current_url
+
+    retries = 5
+    while retries > 0:
+        xml = driver.current_url
+        if xml != 'about:blank':
+            break
+        time.sleep(2)
+        retries -= 1
+
+    if xml == 'about:blank':
+        logging.info("Error: Could not download the xml files")
+        driver.close()
+        driver.switch_to.window(driver.window_handles[0])
+        return
 
     if not os.path.exists(path+pdb_id+'_PDBePISA_xml_files'):
         os.makedirs(path+pdb_id+'_PDBePISA_xml_files')
@@ -216,7 +231,7 @@ def download_xmls(driver, pdb_id, path):
 
     spinner.stop()
 
-    print("Done")
+    logging.info("Done")
 
 
 if __name__ == '__main__':
@@ -228,5 +243,14 @@ if __name__ == '__main__':
     ARGS = PARSER.parse_args()
 
     PDB_ID = ARGS.pdb_id
+
+    log_filename = os.path.join(f"PDBePISA_{datetime.now().strftime('%Y-%m-%d')}.log")
+    with open(log_filename, 'a'):
+        pass
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s - %(levelname)s - %(message)s',
+                        handlers=[logging.FileHandler(log_filename, mode='a'),
+                                  logging.StreamHandler(sys.stdout)])
+
 
     download_xmls(launch_pdb_id(start(), PDB_ID), PDB_ID)

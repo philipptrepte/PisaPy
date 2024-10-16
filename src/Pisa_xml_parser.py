@@ -24,6 +24,7 @@ import argparse
 import pandas as pd
 import re
 import os.path
+import logging
 from Parse_Interfacetable import find_xml_files
 
 #this dict works generally assigns chain A as binder and chain B as target
@@ -60,7 +61,7 @@ def xmlbond_parser(xml_file):
                     lst.append(value)
                     value = []
     else:
-        print("No ",xml_file, "found")
+        logging.info("No ",xml_file, "found")
 
     return(lst)
 
@@ -82,7 +83,7 @@ def give_prot(search_chain):
             if chain == search_chain:
                 return(protein)
 
-    print("The chain corresponds to none of the proteins")
+    logging.info("The chain corresponds to none of the proteins")
     return('')
 
 def interfacetable_parse(xml_file):

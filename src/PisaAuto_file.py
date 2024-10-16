@@ -44,6 +44,8 @@ import PisaAuto_id as pisa
 from Parse_Interfacetable import parse_interface, find_xml_files
 from Pisa_xml_parser import create_df, interfacetable_parse
 from Residue_xml_parser import xmlresidue_parser, plot_residue_data
+import logging
+from datetime import datetime
 
 def check_exists_by_name(name, driver):
     """
@@ -80,7 +82,7 @@ def launch_pdb_file(driver, pdb_file):
     -------
     selenium webdriver
     """
-    print("2- Uploading "+pdb_file+" :")
+    logging.info("2- Uploading "+pdb_file+" :")
 
     spinner = Halo(text='Uploading pdb file', spinner='dots')
     spinner.start()
@@ -102,9 +104,9 @@ def launch_pdb_file(driver, pdb_file):
 
     spinner.stop()
 
-    print("Done")
+    logging.info("Done")
 
-    print("3- Running PISA on "+pdb_file+" :")
+    logging.info("3- Running PISA on "+pdb_file+" :")
 
     spinner = Halo(text='Running Pisa', spinner='dots')
     spinner.start()
@@ -115,7 +117,7 @@ def launch_pdb_file(driver, pdb_file):
 
         spinner.stop()
         
-        print('No Contacts found')
+        logging.info('No Contacts found')
 
         return driver, False
 
@@ -145,12 +147,24 @@ if __name__ == '__main__':
     if not ROOT_DIR.endswith('/'):
         ROOT_DIR += '/'
 
+    log_filename = os.path.join(PDB_PATH, f"PDBePISA_{datetime.now().strftime('%Y-%m-%d')}.log")
+    with open(log_filename, 'a'):
+        pass
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s - %(levelname)s - %(message)s',
+                        handlers=[logging.FileHandler(log_filename, mode='a'),
+                                  logging.StreamHandler(sys.stdout)])
+
     PDB_FILES = sorted([PDB_PATH+f for f in listdir(PDB_PATH) 
         if ((isfile(PDB_PATH+f)) and 
             (f.split(".")[-1] == "pdb"))], key=str.lower)
 
     for i, file in enumerate(PDB_FILES):
-        print("## pdb file "+str(i+1)+"/"+str(len(PDB_FILES)))
+        output_folder = os.path.join(PDB_PATH, file.split('/')[-1] + '_PDBePISA_xml_files')
+        if os.path.exists(output_folder):
+            logging.info(f"Folder {output_folder} already exists. Skipping {file}.")
+            continue
+        logging.info("## pdb file "+str(i+1)+"/"+str(len(PDB_FILES)))
         driver = pisa.start()
         driver, boo = launch_pdb_file(driver, file)
         if boo:
@@ -159,20 +173,20 @@ if __name__ == '__main__':
     
     xml_files = find_xml_files(ROOT_DIR)
 
-    print("5-Parsing InterfaceTable.xml files")
+    logging.info("5-Parsing InterfaceTable.xml files")
     for xml_file in xml_files:
         df = pd.DataFrame.from_dict(parse_interface(xml_file))
         output_file = os.path.join(os.path.dirname(xml_file), "InterfaceTable.csv")
         df.to_csv(output_file)
 
     for xml_file in xml_files:
-        print(f"Processing {xml_file}")
+        logging.info(f"Processing {xml_file}")
         df = create_df(interfacetable_parse(xml_file))
         output_file = os.path.join(os.path.dirname(xml_file), "InteractionSheet.csv")
         df.to_csv(output_file)
-    print("Done")
+    logging.info("Done")
 
-    print("6-Parsing Residue0.xml files")
+    logging.info("6-Parsing Residue0.xml files")
     residue_xml_files = find_xml_files(ROOT_DIR, filename="residue0.xml")
 
     for xml_file in residue_xml_files:
@@ -182,4 +196,4 @@ if __name__ == '__main__':
         plot_residue_data(df)
         plt.savefig(os.path.join(os.path.dirname(xml_file), "ResiduePlot.pdf"))
         plt.close
-    print("Done")
+    logging.info("Done")
